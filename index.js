@@ -1,6 +1,6 @@
-const core = require('@actions/core')
-const exec = require('@actions/exec')
-const io = require('@actions/io')
+const core = require("@actions/core")
+const exec = require("@actions/exec")
+const io = require("@actions/io")
 
 /**
  *
@@ -11,7 +11,7 @@ const io = require('@actions/io')
  */
 async function execAndGetStdout(executable, args) {
 	/** @type {string} */
-	let output = ''
+	let output = ""
 
 	/** @type {exec.ExecOptions} */
 	const options = {
@@ -34,7 +34,7 @@ async function execAndGetStdout(executable, args) {
 	}
 
 	/** @type {string[]} */
-	const result = output === '' ? [] : output.split('\n')
+	const result = output === "" ? [] : output.split("\n")
 
 	return result
 }
@@ -49,26 +49,26 @@ async function getMesonFiles(onlyGitFiles) {
 	let files
 
 	/** @type {string[]} */
-	const mesonFiles = ['meson.build', 'meson.options', 'meson_options.txt']
+	const mesonFiles = ["meson.build", "meson.options", "meson_options.txt"]
 
 	if (onlyGitFiles) {
 		/** @type {string[]} */
-		const gitFiles = mesonFiles.flatMap((file) => ['--exclude', file])
+		const gitFiles = mesonFiles.flatMap((file) => ["--exclude", file])
 
-		files = await execAndGetStdout('git', [
-			'ls-files',
+		files = await execAndGetStdout("git", [
+			"ls-files",
 			...gitFiles,
-			'--ignored',
-			'-c',
+			"--ignored",
+			"-c",
 		])
 	} else {
 		/** @type {string[][]} */
-		const findFiles = mesonFiles.map((file) => ['-name', file])
+		const findFiles = mesonFiles.map((file) => ["-name", file])
 
 		/** @type {string[]} */
 		const finalFindFiles = findFiles.reduce((acc, elem, index) => {
 			if (index != 0) {
-				acc.push('-o')
+				acc.push("-o")
 			}
 
 			acc.push(...elem)
@@ -76,11 +76,11 @@ async function getMesonFiles(onlyGitFiles) {
 			return acc
 		}, [])
 
-		files = await execAndGetStdout('find', [
-			'.',
-			'(',
+		files = await execAndGetStdout("find", [
+			".",
+			"(",
 			...finalFindFiles,
-			')',
+			")",
 		])
 	}
 
@@ -101,12 +101,12 @@ async function checkFile(file, formatFile) {
 	}
 
 	/** @type {string[]} */
-	const additionalArgs = formatFile === '' ? [] : ['-c', formatFile]
+	const additionalArgs = formatFile === "" ? [] : ["-c", formatFile]
 
 	/** @type {number} */
 	const exitCode = await exec.exec(
-		'meson',
-		['format', '--check-only', ...additionalArgs, file],
+		"meson",
+		["format", "--check-only", ...additionalArgs, file],
 		options
 	)
 
@@ -120,11 +120,11 @@ async function checkFile(file, formatFile) {
  * @returns {string}
  */
 function getMarkdownListOf(items, ordered) {
-	/** @type {string[]} */
-	const itemsContent = items.map((item) => `<li>${item}</li>`)
+	/** @type {string} */
+	const itemsContent = items.map((item) => `<li>${item}</li>`).join("")
 
 	/** @type {string} */
-	const listType = ordered ? 'ol' : 'ul'
+	const listType = ordered ? "ol" : "ul"
 
 	return `<${listType}>${itemsContent}</${listType}>`
 }
@@ -138,29 +138,29 @@ async function main() {
 		/** @type {string} */
 		const os = core.platform.platform
 
-		if (os != 'linux') {
+		if (os != "linux") {
 			throw new Error(
 				`Action atm only supported on linux: but are on: ${os}`
 			)
 		}
 
 		/** @type {string} */
-		const formatFile = core.getInput('format-file', { required: false })
+		const formatFile = core.getInput("format-file", { required: false })
 
 		/** @type {boolean} */
-		const onlyGitFiles = core.getBooleanInput('only-git-files', {
+		const onlyGitFiles = core.getBooleanInput("only-git-files", {
 			required: false,
 		})
 
 		/** @type {string[]} */
 		const files = await getMesonFiles(onlyGitFiles)
 
-		await io.which('meson', true)
+		await io.which("meson", true)
 
 		/** @type {string[]} */
 		const notFormattedFiles = []
 
-		core.startGroup('Check all files')
+		core.startGroup("Check all files")
 
 		//TODO: maybe parallelize this
 		for (const file of files) {
@@ -171,10 +171,10 @@ async function main() {
 
 			core.info(
 				result
-					? 'File is formatted correctly'
-					: 'File has formatting errors'
+					? "File is formatted correctly"
+					: "File has formatting errors"
 			)
-			core.info('')
+			core.info("")
 
 			if (!result) {
 				notFormattedFiles.push(file)
@@ -182,10 +182,10 @@ async function main() {
 				/** @type {core.AnnotationProperties} */
 				const properties = {
 					file,
-					title: 'File not formatted correctly',
+					title: "File not formatted correctly",
 				}
 
-				core.error('File not formatted correctly', properties)
+				core.error("File not formatted correctly", properties)
 			}
 		}
 
@@ -194,9 +194,9 @@ async function main() {
 		if (notFormattedFiles.length === 0) {
 			core.summary.clear()
 
-			core.summary.addHeading('Result', 1)
+			core.summary.addHeading("Result", 1)
 			core.summary.addRaw(
-				':white_check_mark: All files are correctly formatted',
+				":white_check_mark: All files are correctly formatted",
 				true
 			)
 
@@ -206,38 +206,38 @@ async function main() {
 
 		core.summary.clear()
 
-		core.summary.addHeading('Result', 1)
-		core.summary.addRaw(':x: Some files are not formatted correctly', true)
+		core.summary.addHeading("Result", 1)
+		core.summary.addRaw(":x: Some files are not formatted correctly", true)
 		core.summary.addBreak()
 
 		/** @type {string} */
 		const fileList = getMarkdownListOf(notFormattedFiles, false)
 
-		core.summary.addDetails('Affected Files', fileList)
+		core.summary.addDetails("Affected Files", fileList)
 		core.summary.addSeparator()
 
 		core.summary.addRaw(
-			'To format the files run the following command',
+			"To format the files run the following command",
 			true
 		)
 		core.summary.addBreak()
 
 		/** @type {string} */
-		const additionalArgs = formatFile === '' ? '' : `-c "${formatFile}"`
+		const additionalArgs = formatFile === "" ? "" : `-c "${formatFile}"`
 
 		/** @type {string} */
 		const finalFileList = notFormattedFiles
 			.map((file) => `"${file}"`)
-			.join(' ')
+			.join(" ")
 
 		core.summary.addCodeBlock(
 			`meson format ${additionalArgs} -i ${finalFileList}`,
-			'bash'
+			"bash"
 		)
 
 		core.summary.write({ overwrite: true })
 
-		throw new Error('Some files are not formatted correctly')
+		throw new Error("Some files are not formatted correctly")
 	} catch (error) {
 		if (error instanceof Error) {
 			core.setFailed(error)
