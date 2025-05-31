@@ -1,6 +1,8 @@
 const core = require("@actions/core")
 const exec = require("@actions/exec")
 const io = require("@actions/io")
+const path = require("node:path")
+const fs = require("node:fs")
 
 /**
  *
@@ -130,6 +132,26 @@ function getMarkdownListOf(items, ordered) {
 }
 
 /**
+ *
+ * @param {string} file
+ * @returns {string | null}
+ */
+function resolveFormatFile(file) {
+	/** @type {string} */
+	let finalPath = file
+
+	if (!path.isAbsolute(file)) {
+		finalPath = path.resolve(process.cwd(), file)
+	}
+
+	if (!fs.existsSync(finalPath)) {
+		return null
+	}
+
+	return finalPath
+}
+
+/**
  * @async
  * @returns {Promise<void>}
  */
@@ -145,12 +167,21 @@ async function main() {
 		}
 
 		/** @type {string} */
-		const formatFile = core.getInput("format-file", { required: false })
+		const formatFileRaw = core.getInput("format-file", { required: false })
 
 		/** @type {boolean} */
 		const onlyGitFiles = core.getBooleanInput("only-git-files", {
 			required: false,
 		})
+
+		/** @type {string | null} */
+		const formatFile = resolveFormatFile(formatFileRaw)
+
+		if (formatFile === null) {
+			throw new Error(
+				`Meson format file '${formatFileRaw}' not found, please specify a valid file, current working directory, that was used to resolve this path was: ${process.cwd()}`
+			)
+		}
 
 		/** @type {string[]} */
 		const files = await getMesonFiles(onlyGitFiles)
