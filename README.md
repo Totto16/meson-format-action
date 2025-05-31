@@ -5,7 +5,7 @@
 ## Usage
 
 ```yaml
-  - uses: Totto16/meson-format-action@1
+  - uses: Totto16/meson-format-action@v1
     with:
       format-file: ./meson.format
       only-git-files: true
