@@ -10,6 +10,9 @@ inputs:
     description: 'Only check files, that are check into git'
     required: false
     default: 'true'
+branding:
+  icon: check-circle
+  color: green
 runs:
   using: 'composite'
   steps:
