@@ -48,7 +48,7 @@ async function execAndGetStdout(executable, args) {
  */
 async function getMesonFiles(onlyGitFiles) {
 	/** @type {string[]} */
-	let files
+	let files = []
 
 	/** @type {string[]} */
 	const mesonFiles = ["meson.build", "meson.options", "meson_options.txt"]
@@ -86,9 +86,26 @@ async function getMesonFiles(onlyGitFiles) {
 		])
 	}
 
-	files = files.filter(file => file !== "")
+	/** @type {string[]} */
+	let abs_files = []
 
-	return files
+	for (const file of files) {
+		if (file === "") {
+			continue;
+		}
+
+		/** @type {string | null} */
+		const abs_file = resolveFilePath(file)
+
+		if (abs_file === null) {
+			break;
+		}
+
+		abs_files.push(abs_file)
+
+	}
+
+	return abs_files
 }
 
 /**
@@ -138,7 +155,7 @@ function getMarkdownListOf(items, ordered) {
  * @param {string} file
  * @returns {string | null}
  */
-function resolveFormatFile(file) {
+function resolveFilePath(file) {
 	/** @type {string} */
 	let finalPath = file
 
@@ -151,6 +168,20 @@ function resolveFormatFile(file) {
 	}
 
 	return finalPath
+}
+
+/**
+ *
+ * @param {string} file
+ * @returns {string}
+ */
+function toRelativeFilePath(file) {
+
+	if (!path.isAbsolute(file)) {
+		return file;
+	}
+
+	return path.relative(process.cwd(), file)
 }
 
 /**
@@ -177,7 +208,7 @@ async function main() {
 		})
 
 		/** @type {string | null} */
-		const formatFile = resolveFormatFile(formatFileRaw)
+		const formatFile = resolveFilePath(formatFileRaw)
 
 		if (formatFile === null) {
 			throw new Error(
@@ -244,7 +275,7 @@ async function main() {
 		core.summary.addBreak()
 
 		/** @type {string} */
-		const fileList = getMarkdownListOf(notFormattedFiles, false)
+		const fileList = getMarkdownListOf(notFormattedFiles.map(file => toRelativeFilePath(file)), false)
 
 		core.summary.addDetails("Affected Files", fileList)
 		core.summary.addSeparator()
@@ -256,11 +287,11 @@ async function main() {
 		core.summary.addBreak()
 
 		/** @type {string} */
-		const additionalArgs = formatFile === "" ? "" : `-c "${formatFile}"`
+		const additionalArgs = formatFile === "" ? "" : `-c "${toRelativeFilePath(formatFile)}"`
 
 		/** @type {string} */
 		const finalFileList = notFormattedFiles
-			.map((file) => `"${file}"`)
+			.map((file) => `"${toRelativeFilePath(file)}"`)
 			.join(" ")
 
 		core.summary.addCodeBlock(
