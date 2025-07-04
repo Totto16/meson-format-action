@@ -86,6 +86,8 @@ async function getMesonFiles(onlyGitFiles) {
 		])
 	}
 
+	files = files.filter(file => file !== "")
+
 	return files
 }
 
